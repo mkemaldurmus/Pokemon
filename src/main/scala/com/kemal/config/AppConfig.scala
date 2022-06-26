@@ -1,4 +1,4 @@
-package config
+package com.kemal.config
 
 import com.typesafe.config.{Config, ConfigFactory}
 
