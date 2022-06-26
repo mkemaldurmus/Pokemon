@@ -17,11 +17,14 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
 
   import ctx._
 
-  implicit val encodeStatsType: MappedEncoding[String, Seq[Stats]] = MappedEncoding[String, Seq[Stats]](decode[Seq[Stats]](_).fold(l => throw l, r => r))
-  implicit val decodeStatsType: MappedEncoding[Seq[Stats], String] = MappedEncoding[Seq[Stats], String](_.asJson.noSpaces)
+  implicit val encodeStatsType: MappedEncoding[String, Seq[Stats]] =
+    MappedEncoding[String, Seq[Stats]](decode[Seq[Stats]](_).fold(l => throw l, r => r))
+  implicit val decodeStatsType: MappedEncoding[Seq[Stats], String] =
+    MappedEncoding[Seq[Stats], String](_.asJson.noSpaces)
 
   private val pokemonQ = quote(querySchema[PokemonDto]("pokemon"))
-  private val typesQ = quote(querySchema[TypeDto]("types"))
+  private val typesQ   = quote(querySchema[TypeDto]("types"))
+  private val offsetQ  = quote(querySchema[OffsetDto]("poke_offset"))
 
   def insertPokemon(pokemonDto: PokemonDto): Future[Long] = {
     ctx.run(pokemonQ.insert(lift(pokemonDto)))
@@ -31,11 +34,10 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
     ctx.run(typesQ.insert(lift(typeDto)))
   }
 
-
   def getTypes(sort: Order): Future[List[TypesResponse]] = {
     val query =
       sort match {
-        case NameAsc => typesQ.dynamic.sortBy(_.name)(Ord.asc)
+        case NameAsc  => typesQ.dynamic.sortBy(_.name)(Ord.asc)
         case NameDesc => typesQ.dynamic.sortBy(_.name)(Ord.desc)
       }
     ctx.run(query.map(result => TypesResponse(Some(result.pid), result.name)))
@@ -56,30 +58,49 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
   }
 
   private def join(filter: Option[String]): ctx.DynamicQuery[(PokemonDto, Option[TypeDto])] = {
-    pokemonQ.dynamic.leftJoin(typesQ).on(_.id == _.pid).filterOpt(filter)((x, y) => quote(x._2.map(_.name).getOrNull).equals(y))
+    pokemonQ.dynamic
+      .leftJoin(typesQ)
+      .on(_.id == _.pid)
+      .filterOpt(filter)((x, y) => quote(x._2.map(_.name).getOrNull).equals(y))
   }
 
   def getEvolution(name: Option[String], id: Option[Int]): Future[List[EvolutionResponse]] = {
-    val query = pokemonQ
-      .dynamic
+    val query = pokemonQ.dynamic
       .filterOpt(name)((pokemonDeatail, name) => quote(pokemonDeatail.name).equals(name))
       .filterOpt(id)((pokemonDetail, id) => quote(pokemonDetail.id).equals(id))
     ctx.run(query.map(result => EvolutionResponse(result.id, result.name, result.evolution)))
   }
 
-  def getDetail(name: Option[String], id: Option[Int]): Future[List[DetailResponse]] = {
-    val query = pokemonQ.dynamic.join(typesQ).on(_.id == _.pid)
+  def getDetail(name: Option[String], id: Option[Int]): Future[DetailResponse] = {
+    val query = pokemonQ.dynamic
+      .join(typesQ)
+      .on(_.id == _.pid)
       .filterOpt(name)((pokemonDetail, name) => quote(pokemonDetail._1.name).equals(name))
       .filterOpt(id)((pokemonDetail, id) => quote(pokemonDetail._1.id).equals(id))
-    ctx.run(query
-      .map
-      (res => DetailResponse
-      (res._1.id, res._1.name,
-        res._1.height,
-        res._1.weight,
-        res._1.stats,
-        res._2.name, // TODo types toblosu değerler 2 den fazla olduğun iler kau
-        res._1.backDefault,
-        res._1.backDefault)))
+    ctx
+      .run(query)
+      .map { res =>
+        val types = res.map(_._2.name)
+        (res.map(_._1).head, types)
+      }
+      .map {
+        case (pokemon, types) =>
+          DetailResponse(
+            pokemon.id,
+            pokemon.name,
+            pokemon.height,
+            pokemon.weight,
+            pokemon.stats,
+            types,
+            pokemon.backDefault,
+            pokemon.backDefault
+          )
+      }
+  }
+  def insertOffset(offset: Int): Future[Long] = {
+    ctx.run(offsetQ.insert(_.current_offset -> lift(offset)))
+  }
+  def getOffset: Future[Int] ={
+    ctx.run(offsetQ).map(res=> if(res.nonEmpty) res.maxBy(_.current_offset).current_offset else 0)
   }
 }

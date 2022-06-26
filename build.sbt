@@ -31,4 +31,3 @@ lazy val root = (project in file("."))
     name := "Pokemon"
   )
 
-
