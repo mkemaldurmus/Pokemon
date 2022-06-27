@@ -1,4 +1,4 @@
-version: "3"
+version: "2"
 
 services:
 
@@ -10,5 +10,15 @@ services:
     hostname: postgres
     environment:
       - PGDATABASE=pokemon
-      - POSTGRES_USER=user
+      - POSTGRES_USER=users
       - POSTGRES_PASSWORD=password
+    volumes:
+      - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+
+
+  scala:
+    build: .
+    volumes:
+        - .:/exampleapp
+        - ./.ivy2:/root/.ivy2
+        - ./.sbt:/root/.sbt

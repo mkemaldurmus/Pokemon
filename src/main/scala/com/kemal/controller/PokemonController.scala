@@ -14,12 +14,12 @@ import io.circe.syntax.EncoderOps
 import scala.util.{Failure, Success}
 
 class PokemonController(implicit pokemonRepo: PokemonRepo) {
-  val getRoute: Route = {
+  val pokemonRoute: Route = {
     (path("pokemons") & get) {
 
       parameters("sort".as[Order](x).?(IdAsc), "filter".as[String].?) { (sort, filter) =>
 
-        onComplete(pokemonRepo.getAll(sort, filter)) {
+        onComplete(pokemonRepo.getAllPokemon(sort, filter)) {
           case Success(value) => complete(StatusCodes.OK, value.map(_.asJson))
           case Failure(exception) => failWith(exception)
         }

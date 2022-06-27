@@ -24,8 +24,9 @@ class FavoritePokemonController extends Complements {
     } ~ delete {
       parameters(Symbol("name").as[String]) { listName =>
         onComplete(favoritePokemonRepo.deleteList(listName)) { // TODO not found
-          case Success(value)     => complete(StatusCodes.Accepted, value.asJson)
-          case Failure(exception) => failWith(exception)
+          case Success(value) if value == 0 => complete(StatusCodes.NotFound)
+          case Success(value)               => complete(StatusCodes.Accepted, value.asJson)
+          case Failure(exception)           => failWith(exception)
         }
       }
     }

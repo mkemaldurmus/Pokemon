@@ -1,3 +1,5 @@
+import sbtassembly.AssemblyPlugin.autoImport.assembly
+
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.8"
@@ -27,6 +29,14 @@ libraryDependencies ++= Seq(
 
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttp % "test"
 )
+
+assembly / assemblyMergeStrategy := {
+  case PathList("application.conf")  => MergeStrategy.concat
+  case PathList("reference.conf")    => MergeStrategy.concat
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case _                             => MergeStrategy.first
+}
+assembly / assemblyJarName := s"${name.value}-${version.value}.jar"
 
 lazy val root = (project in file("."))
   .settings(

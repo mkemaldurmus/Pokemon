@@ -31,7 +31,6 @@ case class Evolves(species: Species, evolves_to: Seq[EvolvesTo])
 
 case class Species(name: String)
 
-// species -> evolst. spies
 case class EvolvesTo(species: Species)
 
 case class DetailSpecies(url: String)

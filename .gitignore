@@ -2,4 +2,12 @@
 !.gitignore
 !.editorconfig
 !.scalafmt.conf
-target/
+
+logs
+target
+/.idea_modules
+/.classpath
+/.project
+/.bsp
+/.settings
+/RUNNING_PID

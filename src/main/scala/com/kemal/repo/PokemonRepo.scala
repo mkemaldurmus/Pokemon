@@ -18,7 +18,7 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
   import ctx._
 
   implicit val encodeStatsType: MappedEncoding[String, Seq[Stats]] =
-    MappedEncoding[String, Seq[Stats]](decode[Seq[Stats]](_).fold(l => throw l, r => r))
+    MappedEncoding[String, Seq[Stats]](decode[Seq[Stats]](_).fold(throw _, r => r))
   implicit val decodeStatsType: MappedEncoding[Seq[Stats], String] =
     MappedEncoding[Seq[Stats], String](_.asJson.noSpaces)
 
@@ -43,7 +43,7 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
     ctx.run(query.map(result => TypesResponse(Some(result.pid), result.name)))
   }
 
-  def getAll(sort: Order, filter: Option[String]): Future[List[PokemonResponse]] = {
+  def getAllPokemon(sort: Order, filter: Option[String]): Future[List[PokemonResponse]] = {
     val query = (sort) match {
       case IdAsc =>
         join(filter).sortBy(_._1.id)(Ord.asc)
@@ -98,9 +98,9 @@ class PokemonRepo()(implicit val ctx: PostgresAsyncContext[LowerCase.type],
       }
   }
   def insertOffset(offset: Int): Future[Long] = {
-    ctx.run(offsetQ.insert(_.current_offset -> lift(offset)))
+    ctx.run(offsetQ.update(_.current_offset -> lift(offset)))
   }
-  def getOffset: Future[Int] ={
-    ctx.run(offsetQ).map(res=> if(res.nonEmpty) res.maxBy(_.current_offset).current_offset else 0)
+  def getOffset: Future[Int] = {
+    ctx.run(offsetQ).map(_.maxByOption(_.current_offset).map(_.current_offset).getOrElse(0))
   }
 }
