@@ -9,10 +9,12 @@ val akkaHttpCirce = "1.39.2"
 val akkaV = "2.6.9"
 val quillV = "3.12.0"
 val scalaLoggingV = "3.9.2"
+val logbackV      = "1.2.3"
 
 
 
 libraryDependencies ++= Seq(
+  "ch.qos.logback"    % "logback-classic"   % logbackV,
   "com.typesafe.akka" %% "akka-actor-typed" % akkaV,
   "com.typesafe.akka" %% "akka-http" % akkaHttp,
   "com.typesafe.akka" %% "akka-stream" % akkaV,
