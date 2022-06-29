@@ -5,7 +5,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.Directives
 import io.circe.Decoder
-import io.circe.generic.auto.exportDecoder
 import io.circe.parser._
 
 import scala.concurrent.Future
@@ -17,7 +16,7 @@ class HttpClient extends Directives {
 
   val timeout = 30.seconds
 
-  def get[T:Decoder](uri: String, success: StatusCode = StatusCodes.OK): Future[T] =
+  def get[T: Decoder](uri: String, success: StatusCode = StatusCodes.OK): Future[T] =
     Http().singleRequest(HttpRequest(uri = uri)).flatMap {
       case response if response.status == success =>
         response.entity
